@@ -426,4 +426,3 @@ if __name__ == '__main__':
     parser.add_argument('-silent', dest='verbose', action='store_false', default=None, help='OPTIONAL: Do not output process milestones to command window. Default false.')
     args = parser.parse_args()
     astracarta(**vars(args))
-
