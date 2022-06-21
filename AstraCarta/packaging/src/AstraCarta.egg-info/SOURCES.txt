@@ -1,0 +1,10 @@
+LICENSE
+README.md
+pyproject.toml
+setup.cfg
+src/AstraCarta/AstraCarta.py
+src/AstraCarta/__init__.py
+src/AstraCarta.egg-info/PKG-INFO
+src/AstraCarta.egg-info/SOURCES.txt
+src/AstraCarta.egg-info/dependency_links.txt
+src/AstraCarta.egg-info/top_level.txt
