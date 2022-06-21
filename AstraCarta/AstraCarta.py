@@ -263,7 +263,6 @@ def astracarta(**kwargs):
 
         results.write(rawqueryfilename, overwrite=True, format="csv")
 
-
     rowswritten = 0
     with open(rawqueryfilename, 'r') as rawquery:
         with open(resultsfilename, 'w', newline='') as results:
@@ -271,18 +270,19 @@ def astracarta(**kwargs):
             writer = csv.DictWriter(results, fieldnames=reader.fieldnames)
             writer.writeheader()
             for row in reader:
-                if float(row[filter]) <= maglimit: #valid to write
-                    if pmepoch != 0: #update ra and dec
-                        if row['pm'] != '' and float(row['pm']) < pmlimit:
-                            dt = pmepoch - float(row['ref_epoch'])
-                            row['ref_epoch'] = float(row['ref_epoch']) + dt
-                            row['ra'] = float(row['ra']) + dt * float(row['pmra']) / 3600 / 1000
-                            row['dec'] = float(row['dec']) + dt * float(row['pmdec']) / 3600 / 1000
+                if row[filter] != "": #ignore NaNs
+                    if float(row[filter]) <= maglimit: #valid to write
+                        if pmepoch != 0: #update ra and dec
+                            if row['pm'] != '' and float(row['pm']) < pmlimit:
+                                dt = pmepoch - float(row['ref_epoch'])
+                                row['ref_epoch'] = float(row['ref_epoch']) + dt
+                                row['ra'] = float(row['ra']) + dt * float(row['pmra']) / 3600 / 1000
+                                row['dec'] = float(row['dec']) + dt * float(row['pmdec']) / 3600 / 1000
+                                writer.writerow(row)
+                                rowswritten += 1;
+                        else:
                             writer.writerow(row)
                             rowswritten += 1;
-                    else:
-                        writer.writerow(row)
-                        rowswritten += 1;
 
     if rmvrawquery:
         shutil.rmtree(rawoutdir, ignore_errors=True)
