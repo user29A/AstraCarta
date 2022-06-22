@@ -145,17 +145,19 @@ def astracarta(**kwargs):
 
     imageout = False
     if kwargs.get("imageout") is not None:
-        imageout = True
+        imageout = kwargs.get("imageout")
 
     outformat = ".csv"
     fitsout = False
     if kwargs.get("fitsout") is not None:
-        outformat = ".fits"
-        fitsout = True
+        fitsout = kwargs.get("fitsout")
+        if fitsout == True:
+                outformat = ".fits"
+                fitsout = True
     
     imageshow = False;
     if kwargs.get("imageshow") is not None:
-        imageshow = True
+        imageshow = kwargs.get("imageshow")
 
     outdir = os.getcwd();    
     if kwargs.get("outdir") is not None:
@@ -169,7 +171,7 @@ def astracarta(**kwargs):
 
     forcenew = False
     if kwargs.get("forcenew") is not None:
-        forcenew = True
+        forcenew = kwargs.get("forcenew")
 
     nquery = 500
     if kwargs.get("nquery") is not None:
@@ -194,11 +196,11 @@ def astracarta(**kwargs):
 
     notableout = False;
     if kwargs.get("notableout") is not None:
-        notableout = True
+        notableout = kwargs.get("notableout")
 
     rmvrawquery = False;
     if kwargs.get("rmvrawquery") is not None:
-        rmvrawquery = True
+        rmvrawquery = kwargs.get("rmvrawquery")
 
     if (shape == "circle"):
         rawqueryfilenamehash = hash((ra, dec, nquery, cataloguenum, filternum, radius, shapenum))
@@ -213,9 +215,9 @@ def astracarta(**kwargs):
     if kwargs.get("outname") is not None:
         outname = kwargs.get("outname")
 
-    silent = False
+    silent = False;
     if kwargs.get("silent") is not None:
-        silent = True
+        silent = kwargs.get("silent")
 
     rawqueryfilename = rawoutdir + str(rawqueryfilenamehash) + ".csv"
     resultsfilename = outdir + outname + outformat
@@ -423,6 +425,6 @@ if __name__ == '__main__':
     parser.add_argument('-pmlimit', dest='pmlimit', action='store', const=None, default=None, type=float, help='OPTIONAL: Limit the output to proper motions whose absolute value are less than pmlimit. Milliarcseconds per year.')
     parser.add_argument('-entries', dest='entries', action='store', const=None, default=None, type=str, help='OPTIONAL: A commaspace ", " separated list of source columns to request from the query. Pass entries="all" to get everything from the query source. Default is for GaiaDR3, entries="ref_epoch, ra, ra_err, dec, dec_err, pmra, pmra_err, pmdec, pmdec_err, pm, phot_bp_mean_mag, phot_g_mean_mag, phot_rp_mean_mag". Thus, if entries is supplied, it appends additional entries to the default. For example if you additionally wanted the absolute value of proper motion errors then passing entries="pm_error" would append ", pm_error" to the string.')
     parser.add_argument('-notableout', dest='notableout', action='store_true', default=None, help='OPTIONAL: Do not write an output file even when sources have been found. Useful if only wanting to view images but don''t want to fill up a directory with table results.')
-    parser.add_argument('-silent', dest='verbose', action='store_false', default=None, help='OPTIONAL: Do not output process milestones to command window. Default false.')
+    parser.add_argument('-silent', dest='verbose', action='store_true', default=None, help='OPTIONAL: Do not output process milestones to command window. Default false.')
     args = parser.parse_args()
     astracarta(**vars(args))
