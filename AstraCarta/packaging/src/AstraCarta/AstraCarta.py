@@ -9,8 +9,39 @@ import math
 import csv
 from astropy.io import ascii
 import matplotlib.pyplot as plt
-import sys
+import sys, getopt
 import shutil
+
+def astracartaCall():
+    parser = argparse.ArgumentParser(description='Search for sources in a region which satisfy a magnitude limit, and return outputs in a table and optionally an image. See https://github.com/user29A/AstraCarta/wiki for more info.')
+    parser.add_argument('-ra', dest='ra', action='store', const=None, default=None, type=float, help='MANDATORY: RA of field center (decimal degrees, J2000).')
+    parser.add_argument('-dec', dest='dec', action='store', const=None, default=None, type=float, help='MANDATORY: Dec of field center (decimal degrees, J2000).')
+    parser.add_argument('-scale', dest='scale', action='store', const=None, default=None, type=float, help='MANDATORY: Plate scale of image. Identical to CDELT of WCS (arcseconds per pixel).')
+    parser.add_argument('-pixwidth', dest='pixwidth', action='store', const=None, default=None, type=int, help='MANDATORY: Width of image in pixels.')
+    parser.add_argument('-pixheight', dest='pixheight', action='store', const=None, default=None, type=int, help='MANDATORY: Height of image in pixels.')
+    parser.add_argument('-maglimit', dest='maglimit', action='store', const=None, default=None, type=float, help='OPTIONAL: Magnitude limit below which to flag bright sources and save to output table. Default is 100, to pass all, given that there is no such low magnitude.')
+    parser.add_argument('-buffer', dest='buffer', action='store', const=None, default=None, type=float, help='OPTIONAL: Tolerance buffer around image field, in arcminutes. This field can be negative, if one wishes to mitigate image padding in the query.')
+    parser.add_argument('-shape', dest='shape', action='store', const=None, default=None, type=str, help='OPTIONAL: Shape of field to query: "rectangle" (default) or "circle". Circle may only be used if pixwidth and pixheight are equal. Rectangle query uses a polygon query with corners defined by an ad-hoc WCS given the supplied field parameters, whereas circle uses a radius.')
+    parser.add_argument('-rotation', dest='rotation', action='store', const=None, default=None, type=float, help='OPTIONAL: Field rotation, applicable to a rectangle query. Raises an exception if used for a circle query.')
+    parser.add_argument('-catalogue', dest='catalogue', action='store', const=None, default=None, type=str, help='OPTIONAL: Catalogue or Service to query. Valid options are currently: "GaiaDR3"')
+    parser.add_argument('-filter', dest='filter', action='store', const=None, default=None, type=str, help='OPTIONAL: Filter of the catalogue to sort on. Options are: for GaiaDR3: ''rp'', ''bp'', ''g'' (default)')
+    parser.add_argument('-forcenew', dest='forcenew', action='store_true', default=None, help='OPTIONAL: Force new astroquery. The raw query is saved with a filename based on a hash of the astroquery parameters, and therefore should be unique for unique queries, and the same for the same queries. The exception is for the "entries" option which cannot be hashed non-randomly. Therefore if everything else stays the same except for "entries", one would need to force a new query.')
+    parser.add_argument('-imageout', dest='imageout', action='store_true', default=None, help='OPTIONAL: Output an image field plot with maglimit sources marked.')
+    parser.add_argument('-imageshow', dest='imageshow', action='store_true', default=None, help='OPTIONAL: Show the image field plot.')
+    parser.add_argument('-outdir', dest='outdir', action='store', const=None, default=None, type=str, help='OPTIONAL: Directory to save files. By default files are saved in the current working directory.')
+    parser.add_argument('-outname', dest='outname', action='store', const=None, default=None, type=str, help='OPTIONAL: The name to use for output files. If not supplied a settings-consistent but random hash will be used for output file names. Existing filenames will not be overwritten.')
+    parser.add_argument('-fitsout', dest='fitsout', action='store_true', default=None, help='OPTIONAL: Output results table format as FITS binary table (instead of csv).')
+    parser.add_argument('-rmvrawquery', dest='rmvrawquery', action='store_true', default=None, help='OPTIONAL: Remove the raw query folder and its contents after running. This will force future astroqueries.')
+    parser.add_argument('-nquery', dest='nquery', action='store', const=None, default=None, type=int, help='OPTIONAL: Number of brightest sources in the filter to retreive from the query service. Pass 0 to retreive all sources. Default 500.')
+    parser.add_argument('-pmepoch', dest='pmepoch', action='store', const=None, default=None, type=float, help='OPTIONAL: Pass the year.year value of the observation to update the RA and Dec entries of the table with their proper motion adjustments, given the catalogue reference epoch. Only entries in the query which have valid proper motion entries will be saved to output.')
+    parser.add_argument('-pmlimit', dest='pmlimit', action='store', const=None, default=None, type=float, help='OPTIONAL: Limit the output to proper motions whose absolute value are less than pmlimit. Milliarcseconds per year.')
+    parser.add_argument('-entries', dest='entries', action='store', const=None, default=None, type=str, help='OPTIONAL: A commaspace ", " separated list of source columns to request from the query. Pass entries="all" to get everything from the query source. Default is for GaiaDR3, entries="ref_epoch, ra, ra_err, dec, dec_err, pmra, pmra_err, pmdec, pmdec_err, pm, phot_bp_mean_mag, phot_g_mean_mag, phot_rp_mean_mag". Thus, if entries is supplied, it appends additional entries to the default. For example if you additionally wanted the absolute value of proper motion errors then passing entries="pm_error" would append ", pm_error" to the string.')
+    parser.add_argument('-notableout', dest='notableout', action='store_true', default=None, help='OPTIONAL: Do not write an output file even when sources have been found. Useful if only wanting to view images but don''t want to fill up a directory with table results.')
+    parser.add_argument('-silent', dest='verbose', action='store_true', default=None, help='OPTIONAL: Do not output process milestones to command window. Default false.')
+    args = parser.parse_args()
+    return astracarta(**vars(args))
+
+    #ra=arg.ra, dec=arg.dec, scale=arg.scale, pixwidth=arg.pixwidth, pixheight=arg.pixheight, maglimit=arg.maglimit, buffer=arg.buffer, shape=arg.shape, rotation=arg.rotation, catalogue=arg.catalogue, filter=arg.filter, forcenew=arg.forcenew, imageout=arg.imageout, imageshow=arg.imageshow, outdir=arg.outdir, outname=arg.outname, fitsout=arg.fitsout, rmvrawquery=arg.rmvrawquery, nquery=arg.nquery, pmepoch=arg.pmepoch, pmlimit=arg.pmlimit, entries=arg.entries, notableout=arg.notableout, silent=arg.silent
 
 def astracarta(**kwargs):
 
@@ -21,8 +52,6 @@ def astracarta(**kwargs):
     if kwargs.get("dec") is None:
         raise ValueError('-dec must be supplied.')
     dec = kwargs.get("dec")
-
-    #coords = SkyCoord(ra=ra, dec=dec, unit=(u.deg, u.deg), frame='fk5')
 
     if kwargs.get("scale") is None:
         raise ValueError('-scale must be supplied.')
@@ -36,9 +65,9 @@ def astracarta(**kwargs):
         raise ValueError('-pixheight must be supplied.')
     pixheight = kwargs.get("pixheight")
 
-    if kwargs.get("maglimit") is None:
-        raise ValueError('-maglimit must be supplied.')
-    maglimit = kwargs.get("maglimit")
+    maglimit = 100
+    if kwargs.get("maglimit") is not None:
+        maglimit = kwargs.get("maglimit")
 
     buffer = 0;
     if kwargs.get("buffer") is not None:
@@ -366,7 +395,7 @@ def astracarta(**kwargs):
                 y = rimage*np.cos(np.radians(theta)) + crpix2
                 axes0.plot(x, y, 'k')
 
-            plt.title('Image Plot of Sources Found with MagLimit of ' + str(maglimit))
+            plt.title('Found ' + str(rowswritten) + " Sources")
             plt.ylabel('Vertical Image Axis (Pixels)')
             plt.xlabel('Horizontal Image Axis (Pixels)')
             axes0.set_xlim([xlimmin, xlimmax]);
@@ -407,7 +436,7 @@ if __name__ == '__main__':
     parser.add_argument('-scale', dest='scale', action='store', const=None, default=None, type=float, help='MANDATORY: Plate scale of image. Identical to CDELT of WCS (arcseconds per pixel).')
     parser.add_argument('-pixwidth', dest='pixwidth', action='store', const=None, default=None, type=int, help='MANDATORY: Width of image in pixels.')
     parser.add_argument('-pixheight', dest='pixheight', action='store', const=None, default=None, type=int, help='MANDATORY: Height of image in pixels.')
-    parser.add_argument('-maglimit', dest='maglimit', action='store', const=None, default=None, type=float, help='MANDATORY: Magnitude limit below which to flag bright sources and save to output table. Pass an unreasonably low magnitude (30, say) to pass all.')
+    parser.add_argument('-maglimit', dest='maglimit', action='store', const=None, default=None, type=float, help='OPTIONAL: Magnitude limit below which to flag bright sources and save to output table. Default is 100, to pass all, given that there is no such low magnitude.')
     parser.add_argument('-buffer', dest='buffer', action='store', const=None, default=None, type=float, help='OPTIONAL: Tolerance buffer around image field, in arcminutes. This field can be negative, if one wishes to mitigate image padding in the query.')
     parser.add_argument('-shape', dest='shape', action='store', const=None, default=None, type=str, help='OPTIONAL: Shape of field to query: "rectangle" (default) or "circle". Circle may only be used if pixwidth and pixheight are equal. Rectangle query uses a polygon query with corners defined by an ad-hoc WCS given the supplied field parameters, whereas circle uses a radius.')
     parser.add_argument('-rotation', dest='rotation', action='store', const=None, default=None, type=float, help='OPTIONAL: Field rotation, applicable to a rectangle query. Raises an exception if used for a circle query.')
