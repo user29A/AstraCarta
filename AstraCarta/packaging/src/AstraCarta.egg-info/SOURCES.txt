@@ -8,4 +8,5 @@ src/AstraCarta.egg-info/PKG-INFO
 src/AstraCarta.egg-info/SOURCES.txt
 src/AstraCarta.egg-info/dependency_links.txt
 src/AstraCarta.egg-info/entry_points.txt
+src/AstraCarta.egg-info/requires.txt
 src/AstraCarta.egg-info/top_level.txt

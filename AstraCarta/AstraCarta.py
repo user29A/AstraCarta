@@ -30,6 +30,7 @@ def astracartaCall():
     parser.add_argument('-imageshow', dest='imageshow', action='store_true', default=None, help='OPTIONAL: Show the image field plot.')
     parser.add_argument('-outdir', dest='outdir', action='store', const=None, default=None, type=str, help='OPTIONAL: Directory to save files. By default files are saved in the current working directory.')
     parser.add_argument('-outname', dest='outname', action='store', const=None, default=None, type=str, help='OPTIONAL: The name to use for output files. If not supplied a settings-consistent but random hash will be used for output file names. Existing filenames will not be overwritten.')
+    parser.add_argument('-overwrite', dest='overwrite', action='store_true', default=None, help='OPTIONAL: Overwrite the output table if one is produced, instead of appending an instance number.')
     parser.add_argument('-fitsout', dest='fitsout', action='store_true', default=None, help='OPTIONAL: Output results table format as FITS binary table (instead of csv).')
     parser.add_argument('-rmvrawquery', dest='rmvrawquery', action='store_true', default=None, help='OPTIONAL: Remove the raw query folder and its contents after running. This will force future astroqueries.')
     parser.add_argument('-nquery', dest='nquery', action='store', const=None, default=None, type=int, help='OPTIONAL: Number of brightest sources in the filter to retreive from the query service. Pass 0 to retreive all sources. Default 500.')
@@ -37,7 +38,7 @@ def astracartaCall():
     parser.add_argument('-pmlimit', dest='pmlimit', action='store', const=None, default=None, type=float, help='OPTIONAL: Limit the output to proper motions whose absolute value are less than pmlimit. Milliarcseconds per year.')
     parser.add_argument('-entries', dest='entries', action='store', const=None, default=None, type=str, help='OPTIONAL: A commaspace ", " separated list of source columns to request from the query. Pass entries="all" to get everything from the query source. Default is for GaiaDR3, entries="ref_epoch, ra, ra_err, dec, dec_err, pmra, pmra_err, pmdec, pmdec_err, pm, phot_bp_mean_mag, phot_g_mean_mag, phot_rp_mean_mag". Thus, if entries is supplied, it appends additional entries to the default. For example if you additionally wanted the absolute value of proper motion errors then passing entries="pm_error" would append ", pm_error" to the string.')
     parser.add_argument('-notableout', dest='notableout', action='store_true', default=None, help='OPTIONAL: Do not write an output file even when sources have been found. Useful if only wanting to view images but don''t want to fill up a directory with table results.')
-    parser.add_argument('-silent', dest='verbose', action='store_true', default=None, help='OPTIONAL: Do not output process milestones to command window. Default false.')
+    parser.add_argument('-silent', dest='silent', action='store_true', default=None, help='OPTIONAL: Do not output process milestones to command window. Default false.')
     args = parser.parse_args()
     return astracarta(**vars(args))
 
@@ -181,7 +182,7 @@ def astracarta(**kwargs):
     if kwargs.get("fitsout") is not None:
         fitsout = kwargs.get("fitsout")
         if fitsout == True:
-                outformat = ".fits"
+                outformat = ".fit"
                 fitsout = True
     
     imageshow = False;
@@ -190,7 +191,7 @@ def astracarta(**kwargs):
 
     outdir = os.getcwd();    
     if kwargs.get("outdir") is not None:
-        outdir = kwargs.get("outdir")
+        outdir = str(kwargs.get("outdir"))
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
     outdir += "\\"
@@ -242,7 +243,11 @@ def astracarta(**kwargs):
 
     outname = str(fileoutfilenamehash)
     if kwargs.get("outname") is not None:
-        outname = kwargs.get("outname")
+        outname = str(kwargs.get("outname"))
+
+    overwrite = False;
+    if kwargs.get("overwrite") is not None:
+        overwrite = kwargs.get("overwrite")
 
     silent = False;
     if kwargs.get("silent") is not None:
@@ -251,14 +256,15 @@ def astracarta(**kwargs):
     rawqueryfilename = rawoutdir + str(rawqueryfilenamehash) + ".csv"
     resultsfilename = outdir + outname + outformat
     imagefilename = outdir + outname + ".jpg"
-    if os.path.isfile(resultsfilename) or os.path.isfile(imagefilename):
-        f = 1
-        resultsfilename = outdir + outname + " ({0})".format(f) + outformat
-        imagefilename = outdir + outname + " ({0})".format(f) + ".jpg"
-        while os.path.isfile(resultsfilename) or os.path.isfile(imagefilename):
-            f += 1
+    if not overwrite:
+        if os.path.isfile(resultsfilename) or os.path.isfile(imagefilename):
+            f = 1
             resultsfilename = outdir + outname + " ({0})".format(f) + outformat
             imagefilename = outdir + outname + " ({0})".format(f) + ".jpg"
+            while os.path.isfile(resultsfilename) or os.path.isfile(imagefilename):
+                f += 1
+                resultsfilename = outdir + outname + " ({0})".format(f) + outformat
+                imagefilename = outdir + outname + " ({0})".format(f) + ".jpg"
 
     if not os.path.isfile(rawqueryfilename) or forcenew:    #query new table download
         if not silent:
@@ -278,7 +284,10 @@ def astracarta(**kwargs):
 
             jobstr += "ORDER by gaiadr3.gaia_source." + filter + " ASC"
 
-            #print(jobstr)
+            if not silent:
+                print(jobstr)
+                sys.stdout.flush()
+            
             job = Gaia.launch_job_async(jobstr, dump_to_file=False)
             #print(job)
 
@@ -413,11 +422,14 @@ def astracarta(**kwargs):
             t = ascii.read(resultsfilename, format='csv')
             os.remove(resultsfilename)
             base = os.path.splitext(resultsfilename)[0]
-            resultsfilename = base + ".fits"
+            resultsfilename = base + ".fit"
             t.write(resultsfilename, overwrite=True, format='fits')
         if not notableout:
             if not silent:
                 print("Wrote output table to: " + resultsfilename)
+                sys.stdout.flush()
+            else:
+                print(resultsfilename)
                 sys.stdout.flush()
 
         if imageshow:
@@ -425,6 +437,8 @@ def astracarta(**kwargs):
             plt.close()   
            
         if notableout:
+            print("")
+            sys.stdout.flush()
             return ""
 
         return resultsfilename
@@ -447,6 +461,7 @@ if __name__ == '__main__':
     parser.add_argument('-imageshow', dest='imageshow', action='store_true', default=None, help='OPTIONAL: Show the image field plot.')
     parser.add_argument('-outdir', dest='outdir', action='store', const=None, default=None, type=str, help='OPTIONAL: Directory to save files. By default files are saved in the current working directory.')
     parser.add_argument('-outname', dest='outname', action='store', const=None, default=None, type=str, help='OPTIONAL: The name to use for output files. If not supplied a settings-consistent but random hash will be used for output file names. Existing filenames will not be overwritten.')
+    parser.add_argument('-overwrite', dest='overwrite', action='store_true', default=None, help='OPTIONAL: Overwrite the output table if one is produced, instead of appending an instance number.')
     parser.add_argument('-fitsout', dest='fitsout', action='store_true', default=None, help='OPTIONAL: Output results table format as FITS binary table (instead of csv).')
     parser.add_argument('-rmvrawquery', dest='rmvrawquery', action='store_true', default=None, help='OPTIONAL: Remove the raw query folder and its contents after running. This will force future astroqueries.')
     parser.add_argument('-nquery', dest='nquery', action='store', const=None, default=None, type=int, help='OPTIONAL: Number of brightest sources in the filter to retreive from the query service. Pass 0 to retreive all sources. Default 500.')
@@ -454,6 +469,6 @@ if __name__ == '__main__':
     parser.add_argument('-pmlimit', dest='pmlimit', action='store', const=None, default=None, type=float, help='OPTIONAL: Limit the output to proper motions whose absolute value are less than pmlimit. Milliarcseconds per year.')
     parser.add_argument('-entries', dest='entries', action='store', const=None, default=None, type=str, help='OPTIONAL: A commaspace ", " separated list of source columns to request from the query. Pass entries="all" to get everything from the query source. Default is for GaiaDR3, entries="ref_epoch, ra, ra_err, dec, dec_err, pmra, pmra_err, pmdec, pmdec_err, pm, phot_bp_mean_mag, phot_g_mean_mag, phot_rp_mean_mag". Thus, if entries is supplied, it appends additional entries to the default. For example if you additionally wanted the absolute value of proper motion errors then passing entries="pm_error" would append ", pm_error" to the string.')
     parser.add_argument('-notableout', dest='notableout', action='store_true', default=None, help='OPTIONAL: Do not write an output file even when sources have been found. Useful if only wanting to view images but don''t want to fill up a directory with table results.')
-    parser.add_argument('-silent', dest='verbose', action='store_true', default=None, help='OPTIONAL: Do not output process milestones to command window. Default false.')
+    parser.add_argument('-silent', dest='silent', action='store_true', default=None, help='OPTIONAL: Do not output process milestones to command window. Default false.')
     args = parser.parse_args()
     astracarta(**vars(args))
