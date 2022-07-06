@@ -21,6 +21,8 @@ def astracartaCall():
     parser.add_argument('-pixheight', dest='pixheight', action='store', const=None, default=None, type=int, help='MANDATORY: Height of image in pixels.')
     parser.add_argument('-maglimit', dest='maglimit', action='store', const=None, default=None, type=float, help='OPTIONAL: Magnitude limit below which to flag bright sources and save to output table. Default is 100, to pass all, given that there is no such low magnitude.')
     parser.add_argument('-buffer', dest='buffer', action='store', const=None, default=None, type=float, help='OPTIONAL: Tolerance buffer around image field, in arcminutes. This field can be negative, if one wishes to mitigate image padding in the query.')
+    parser.add_argument('-offsetra', dest='offsetra', action='store', const=None, default=None, type=float, help='OPTIONAL: Offset the center of the query region in right ascension. Units in arcminutes.')
+    parser.add_argument('-offsetdec', dest='offsetdec', action='store', const=None, default=None, type=float, help='OPTIONAL: Offset the center of the query region in declination. Units in arcminutes.')
     parser.add_argument('-shape', dest='shape', action='store', const=None, default=None, type=str, help='OPTIONAL: Shape of field to query: "rectangle" (default) or "circle". Circle may only be used if pixwidth and pixheight are equal. Rectangle query uses a polygon query with corners defined by an ad-hoc WCS given the supplied field parameters, whereas circle uses a radius.')
     parser.add_argument('-rotation', dest='rotation', action='store', const=None, default=None, type=float, help='OPTIONAL: Field rotation, applicable to a rectangle query. Raises an exception if used for a circle query.')
     parser.add_argument('-catalogue', dest='catalogue', action='store', const=None, default=None, type=str, help='OPTIONAL: Catalogue or Service to query. Valid options are currently: "GaiaDR3"')
@@ -73,6 +75,16 @@ def astracarta(**kwargs):
     buffer = 0;
     if kwargs.get("buffer") is not None:
         buffer = kwargs.get("buffer") #arcminutes
+
+    offsetra = 0;
+    if kwargs.get("offsetra") is not None:
+        offsetra = kwargs.get("offsetra") #arcminutes
+    ra += (offsetra / 60)
+
+    offsetdec = 0;
+    if kwargs.get("offsetdec") is not None:
+        offsetdec = kwargs.get("offsetdec") #arcminutes
+    dec += (offsetdec / 60)
 
     shape = "rectangle"
     shapenum = 1
@@ -452,6 +464,8 @@ if __name__ == '__main__':
     parser.add_argument('-pixheight', dest='pixheight', action='store', const=None, default=None, type=int, help='MANDATORY: Height of image in pixels.')
     parser.add_argument('-maglimit', dest='maglimit', action='store', const=None, default=None, type=float, help='OPTIONAL: Magnitude limit below which to flag bright sources and save to output table. Default is 100, to pass all, given that there is no such low magnitude.')
     parser.add_argument('-buffer', dest='buffer', action='store', const=None, default=None, type=float, help='OPTIONAL: Tolerance buffer around image field, in arcminutes. This field can be negative, if one wishes to mitigate image padding in the query.')
+    parser.add_argument('-offsetra', dest='offsetra', action='store', const=None, default=None, type=float, help='OPTIONAL: Offset the center of the query region in right ascension. Units in arcminutes.')
+    parser.add_argument('-offsetdec', dest='offsetdec', action='store', const=None, default=None, type=float, help='OPTIONAL: Offset the center of the query region in declination. Units in arcminutes.')
     parser.add_argument('-shape', dest='shape', action='store', const=None, default=None, type=str, help='OPTIONAL: Shape of field to query: "rectangle" (default) or "circle". Circle may only be used if pixwidth and pixheight are equal. Rectangle query uses a polygon query with corners defined by an ad-hoc WCS given the supplied field parameters, whereas circle uses a radius.')
     parser.add_argument('-rotation', dest='rotation', action='store', const=None, default=None, type=float, help='OPTIONAL: Field rotation, applicable to a rectangle query. Raises an exception if used for a circle query.')
     parser.add_argument('-catalogue', dest='catalogue', action='store', const=None, default=None, type=str, help='OPTIONAL: Catalogue or Service to query. Valid options are currently: "GaiaDR3"')
