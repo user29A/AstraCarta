@@ -5,7 +5,12 @@ py -m pip install --upgrade twine
 
 
 from packaging dir
--place updated .py file
+-place updated .py file in /src/AstraCarta
+-delete contents of /dist
+-edit setup.cfg version number
 
 py -m build
 py -m twine upload dist/*
+
+
+

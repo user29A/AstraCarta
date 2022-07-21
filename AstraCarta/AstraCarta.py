@@ -9,8 +9,9 @@ import math
 import csv
 from astropy.io import ascii
 import matplotlib.pyplot as plt
-import sys, getopt
+import sys
 import shutil
+from pathlib import Path
 
 def astracartaCall():
     parser = argparse.ArgumentParser(description='Search for sources in a region which satisfy a magnitude limit, and return outputs in a table and optionally an image. See https://github.com/user29A/AstraCarta/wiki for more info.')
@@ -206,10 +207,10 @@ def astracarta(**kwargs):
         outdir = str(kwargs.get("outdir"))
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
-    outdir += "\\"
-    rawoutdir = os.path.dirname(os.path.abspath(__file__)) + "\\AstraCartaRawQueries\\"
+
+    rawoutdir = os.path.join(Path.home(), "AstraCartaRawQueries")
     if not os.path.isdir(rawoutdir):
-        os.makedirs(rawoutdir)
+        os.makedirs(rawoutdir)    
 
     forcenew = False
     if kwargs.get("forcenew") is not None:
@@ -265,18 +266,18 @@ def astracarta(**kwargs):
     if kwargs.get("silent") is not None:
         silent = kwargs.get("silent")
 
-    rawqueryfilename = rawoutdir + str(rawqueryfilenamehash) + ".csv"
-    resultsfilename = outdir + outname + outformat
-    imagefilename = outdir + outname + ".jpg"
+    rawqueryfilename = os.path.join(rawoutdir, str(rawqueryfilenamehash) + ".csv")
+    resultsfilename = os.path.join(outdir, outname + outformat)
+    imagefilename = os.path.join(outdir, outname + ".jpg")
     if not overwrite:
         if os.path.isfile(resultsfilename) or os.path.isfile(imagefilename):
             f = 1
-            resultsfilename = outdir + outname + " ({0})".format(f) + outformat
-            imagefilename = outdir + outname + " ({0})".format(f) + ".jpg"
+            resultsfilename = os.path.join(outdir, outname + " ({0})".format(f) + outformat)
+            imagefilename = os.path.join(outdir, outname + " ({0})".format(f) + ".jpg")
             while os.path.isfile(resultsfilename) or os.path.isfile(imagefilename):
                 f += 1
-                resultsfilename = outdir + outname + " ({0})".format(f) + outformat
-                imagefilename = outdir + outname + " ({0})".format(f) + ".jpg"
+                resultsfilename = os.path.join(outdir, outname + " ({0})".format(f) + outformat)
+                imagefilename = os.path.join(outdir, outname + " ({0})".format(f) + ".jpg")
 
     if not os.path.isfile(rawqueryfilename) or forcenew:    #query new table download
         if not silent:
